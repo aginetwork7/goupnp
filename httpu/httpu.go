@@ -86,6 +86,8 @@ func NewHTTPUClientAddrWithPort(addr string) (*HTTPUClient, error) {
 	if err != nil {
 		return nil, err
 	}
+
+	joinMultiCast(conn, addr)
 	return &HTTPUClient{conn: conn}, nil
 }
 
