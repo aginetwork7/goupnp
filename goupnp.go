@@ -99,15 +99,29 @@ func DiscoverDevicesCtx(ctx context.Context, searchTarget string) ([]MaybeRootDe
 		maybe.USN = response.Header.Get("USN")
 		loc, err := response.Location()
 		if err != nil {
-			maybe.Err = ContextError{"unexpected bad location from search", err}
+			maybe.Err = fmt.Errorf("unexpected bad location from search, err=%w", err)
 			continue
 		}
 		maybe.Location = loc
-		if root, err := DeviceByURLCtx(ctx, loc); err != nil {
-			maybe.Err = err
+
+		deviceType := response.Header.Get("X-Device-Type")
+		deviceName := response.Header.Get("X-Device-Name")
+		if len(deviceType) > 0 {
+			maybe.Root = &RootDevice{
+				Device: Device{
+					DeviceType:      deviceType,
+					PresentationURL: URLField{Str: loc.String()},
+					FriendlyName:    deviceName,
+				},
+			}
 		} else {
-			maybe.Root = root
+			if root, err := DeviceByURLCtx(ctx, loc); err != nil {
+				maybe.Err = err
+			} else {
+				maybe.Root = root
+			}
 		}
+
 		if i := response.Header.Get(httpu.LocalAddressHeader); len(i) > 0 {
 			maybe.LocalAddr = net.ParseIP(i)
 		}
